@@ -323,8 +323,10 @@ function Slide({
         key={src}
         minScale={1}
         maxScale={5}
+        centerOnInit
         centerZoomedOut
         limitToBounds
+        alignmentAnimation={{ disabled: true }}
         doubleClick={{ mode: 'toggle', step: 2.5 }}
         wheel={{ step: 0.15 }}
         panning={{ disabled: !zoomed }}
@@ -334,16 +336,36 @@ function Slide({
           onZoomChange(z);
         }}
       >
-        <TransformComponent wrapperClass="zoom-wrapper" contentClass="zoom-content">
-          <img
-            src={src}
-            alt={img.name}
-            draggable={false}
-            className={'viewer-img' + (loaded ? ' loaded' : '')}
-            onLoad={() => setLoaded(true)}
-            onClick={onTap}
-          />
-        </TransformComponent>
+        {({ centerView, resetTransform }) => (
+          <TransformComponent
+            wrapperClass="zoom-wrapper"
+            contentClass="zoom-content"
+            wrapperStyle={{
+              width: '100%',
+              height: '100%',
+            }}
+            contentStyle={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 'fit-content',
+              height: 'fit-content',
+            }}
+          >
+            <img
+              src={src}
+              alt={img.name}
+              draggable={false}
+              className={'viewer-img' + (loaded ? ' loaded' : '')}
+              onLoad={() => {
+                setLoaded(true);
+                resetTransform(0);
+                requestAnimationFrame(() => centerView(1, 0));
+              }}
+              onClick={onTap}
+            />
+          </TransformComponent>
+        )}
       </TransformWrapper>
       {!loaded && <div className="spinner viewer-slide-spinner" />}
     </>
