@@ -758,6 +758,10 @@ button {
   display: grid;
   place-items: center;
 }
+.viewer-tap-layer {
+  width: 100%;
+  height: 100%;
+}
 .zoom-wrapper {
   width: 100% !important;
   height: 100% !important;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { PointerEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { viewUrl, rawUrl, fetchMeta, type ImageEntry, type ImageMeta } from '../api';
@@ -350,10 +351,33 @@ function Slide({
 }) {
   const [loaded, setLoaded] = useState(false);
   const [zoomed, setZoomed] = useState(false);
+  const tapStart = useRef<{ x: number; y: number } | null>(null);
   const src = useOriginal ? rawUrl(img.path) : viewUrl(img.path);
 
+  function handlePointerDown(e: PointerEvent<HTMLDivElement>) {
+    if (e.button !== 0 || zoomed) return;
+    tapStart.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function handlePointerUp(e: PointerEvent<HTMLDivElement>) {
+    const start = tapStart.current;
+    tapStart.current = null;
+    if (!start || zoomed) return;
+
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.hypot(dx, dy) <= 12) onTap();
+  }
+
   return (
-    <>
+    <div
+      className="viewer-tap-layer"
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => {
+        tapStart.current = null;
+      }}
+    >
       <TransformWrapper
         key={src}
         minScale={1}
@@ -397,12 +421,11 @@ function Slide({
                 resetTransform(0);
                 requestAnimationFrame(() => centerView(1, 0));
               }}
-              onClick={onTap}
             />
           </TransformComponent>
         )}
       </TransformWrapper>
       {!loaded && <div className="spinner viewer-slide-spinner" />}
-    </>
+    </div>
   );
 }
