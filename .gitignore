@@ -1,0 +1,13 @@
+.DS_Store
+*.log
+node_modules/
+dist/
+.claude/
+
+# Android local state / build outputs
+local.properties
+.gradle/
+build/
+app/android/local.properties
+app/android/.gradle/
+app/android/**/build/

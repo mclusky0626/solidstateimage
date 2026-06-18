@@ -1,0 +1,21 @@
+{
+  "name": "solidstateimage-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mac mini image streaming backend (Node + Sharp) for SolidStateImage",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "exif-reader": "^2.0.3",
+    "express": "^4.19.2",
+    "sharp": "^0.33.5"
+  }
+}
