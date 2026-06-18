@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { viewUrl, rawUrl, fetchMeta, type ImageEntry, type ImageMeta } from '../api';
-import { isShareCancelled, shareImages } from '../nativeShare';
+import { isShareCancelled, shareErrorMessage, shareImages } from '../nativeShare';
 import { CloseIcon, DownloadIcon, OriginalIcon, InfoIcon } from './icons';
 
 export default function Viewer({
@@ -108,7 +108,7 @@ export default function Viewer({
     } catch (e) {
       if (!isShareCancelled(e)) {
         console.error(e);
-        window.alert('공유 또는 저장을 시작하지 못했습니다.');
+        window.alert(`공유 또는 저장을 시작하지 못했습니다.\n${shareErrorMessage(e)}`);
       }
     } finally {
       setDownloading(false);

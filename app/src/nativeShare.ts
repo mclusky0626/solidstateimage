@@ -24,6 +24,59 @@ function safeCacheName(name: string): string {
   return cleaned || 'image';
 }
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('파일을 읽지 못했습니다.'));
+    reader.onload = () => {
+      const result = String(reader.result);
+      resolve(result.includes(',') ? result.split(',')[1] : result);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function cacheRemoteFile(url: string, path: string): Promise<string> {
+  try {
+    await Filesystem.downloadFile({
+      url,
+      path,
+      directory: Directory.Cache,
+      recursive: true,
+    });
+  } catch (nativeError) {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(
+        `이미지를 가져오지 못했습니다 (${res.status}). ${errorMessage(nativeError)}`,
+      );
+    }
+    const blob = await res.blob();
+    await Filesystem.writeFile({
+      path,
+      data: await blobToBase64(blob),
+      directory: Directory.Cache,
+      recursive: true,
+    });
+  }
+
+  const { uri } = await Filesystem.getUri({
+    path,
+    directory: Directory.Cache,
+  });
+  return uri;
+}
+
 async function shareNative(
   images: Pick<ImageEntry, 'name' | 'path'>[],
   options: ShareOptions,
@@ -37,19 +90,7 @@ async function shareNative(
   for (let i = 0; i < images.length; i += 1) {
     const image = images[i];
     const cachePath = `share/${stamp}-${i}-${safeCacheName(fileNameFor(image))}`;
-
-    await Filesystem.downloadFile({
-      url: rawUrl(image.path),
-      path: cachePath,
-      directory: Directory.Cache,
-      recursive: true,
-    });
-
-    const { uri } = await Filesystem.getUri({
-      path: cachePath,
-      directory: Directory.Cache,
-    });
-    files.push(uri);
+    files.push(await cacheRemoteFile(rawUrl(image.path), cachePath));
   }
 
   await Share.share({
@@ -108,4 +149,8 @@ export function isShareCancelled(error: unknown): boolean {
     message.includes('cancel') ||
     message.includes('취소')
   );
+}
+
+export function shareErrorMessage(error: unknown): string {
+  return errorMessage(error) || '알 수 없는 오류';
 }

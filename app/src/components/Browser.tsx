@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fetchDir, type DirListing, type ImageEntry } from '../api';
-import { isShareCancelled, shareImages } from '../nativeShare';
+import { isShareCancelled, shareErrorMessage, shareImages } from '../nativeShare';
 import TopBar, { DENSITIES } from './TopBar';
 import PhotoGrid from './PhotoGrid';
 import { FolderIcon, ImageIcon, SearchIcon } from './icons';
@@ -115,7 +115,7 @@ export default function Browser({
     } catch (e) {
       if (!isShareCancelled(e)) {
         console.error(e);
-        window.alert('공유 또는 저장을 시작하지 못했습니다.');
+        window.alert(`공유 또는 저장을 시작하지 못했습니다.\n${shareErrorMessage(e)}`);
       }
     } finally {
       setSharing(false);
