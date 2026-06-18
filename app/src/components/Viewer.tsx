@@ -2,8 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { viewUrl, rawUrl, fetchMeta, type ImageEntry, type ImageMeta } from '../api';
-import { isShareCancelled, shareErrorMessage, shareImages } from '../nativeShare';
-import { CloseIcon, DownloadIcon, OriginalIcon, InfoIcon } from './icons';
+import {
+  isShareCancelled,
+  saveImages,
+  shareErrorMessage,
+  shareImages,
+} from '../nativeShare';
+import { CloseIcon, DownloadIcon, OriginalIcon, InfoIcon, ShareIcon } from './icons';
 
 export default function Viewer({
   images,
@@ -21,7 +26,8 @@ export default function Viewer({
   const [locked, setLocked] = useState(false);
   const [chrome, setChrome] = useState(true);
   const [useOriginal, setUseOriginal] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [info, setInfo] = useState(false);
   const [meta, setMeta] = useState<ImageMeta | null>(null);
   const [metaErr, setMetaErr] = useState(false);
@@ -96,22 +102,37 @@ export default function Viewer({
     };
   }, [info, index, images]);
 
-  async function handleDownload() {
+  async function handleShare() {
     const img = images[index];
-    if (!img || downloading) return;
-    setDownloading(true);
+    if (!img || sharing || saving) return;
+    setSharing(true);
     try {
       await shareImages([img], {
         title: img.name,
-        dialogTitle: '사진 공유 또는 저장',
+        dialogTitle: '사진 공유',
       });
     } catch (e) {
       if (!isShareCancelled(e)) {
         console.error(e);
-        window.alert(`공유 또는 저장을 시작하지 못했습니다.\n${shareErrorMessage(e)}`);
+        window.alert(`공유를 시작하지 못했습니다.\n${shareErrorMessage(e)}`);
       }
     } finally {
-      setDownloading(false);
+      setSharing(false);
+    }
+  }
+
+  async function handleSave() {
+    const img = images[index];
+    if (!img || saving || sharing) return;
+    setSaving(true);
+    try {
+      await saveImages([img]);
+      window.alert('사진을 저장했습니다.');
+    } catch (e) {
+      console.error(e);
+      window.alert(`사진을 저장하지 못했습니다.\n${shareErrorMessage(e)}`);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -194,11 +215,25 @@ export default function Viewer({
 
               <button
                 className="viewer-action-btn"
-                onClick={handleDownload}
-                disabled={downloading}
+                onClick={handleShare}
+                disabled={sharing || saving}
+                title="공유"
+              >
+                {sharing ? (
+                  <div className="spinner-xs" />
+                ) : (
+                  <ShareIcon size={20} />
+                )}
+                <span>공유</span>
+              </button>
+
+              <button
+                className="viewer-action-btn"
+                onClick={handleSave}
+                disabled={saving || sharing}
                 title="저장"
               >
-                {downloading ? (
+                {saving ? (
                   <div className="spinner-xs" />
                 ) : (
                   <DownloadIcon size={20} />

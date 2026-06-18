@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { rawUrl, type ImageEntry } from './api';
@@ -7,6 +7,12 @@ type ShareOptions = {
   title?: string;
   dialogTitle?: string;
 };
+
+type NativeSavePlugin = {
+  saveImage(options: { url: string; name: string }): Promise<{ uri: string; name: string }>;
+};
+
+const NativeSave = registerPlugin<NativeSavePlugin>('NativeSave');
 
 function isNative(): boolean {
   return Capacitor.isNativePlatform();
@@ -139,6 +145,37 @@ export async function shareImages(
   if (images.length === 0) return;
   if (isNative()) await shareNative(images, options);
   else await shareWeb(images, options);
+}
+
+async function saveNative(images: Pick<ImageEntry, 'name' | 'path'>[]) {
+  for (const image of images) {
+    await NativeSave.saveImage({
+      url: rawUrl(image.path),
+      name: fileNameFor(image),
+    });
+  }
+}
+
+async function saveWeb(images: Pick<ImageEntry, 'name' | 'path'>[]) {
+  for (const image of images) {
+    const res = await fetch(rawUrl(image.path));
+    if (!res.ok) throw new Error(`이미지를 가져오지 못했습니다 (${res.status}).`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileNameFor(image);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+}
+
+export async function saveImages(images: Pick<ImageEntry, 'name' | 'path'>[]) {
+  if (images.length === 0) return;
+  if (isNative()) await saveNative(images);
+  else await saveWeb(images);
 }
 
 export function isShareCancelled(error: unknown): boolean {

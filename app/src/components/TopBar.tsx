@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { DirListing } from '../api';
 import {
   GridIcon, SettingsIcon, SearchIcon, SelectIcon, CloseIcon, ShareIcon,
+  DownloadIcon, StarIcon,
 } from './icons';
 
 // Grid cell min-width presets (larger value → fewer, bigger thumbnails).
@@ -21,9 +22,14 @@ export default function TopBar({
   selectMode,
   selectedCount,
   sharing,
+  saving,
+  canFavorite,
+  favoriteActive,
   onStartSelect,
   onCancelSelect,
   onShareSelected,
+  onSaveSelected,
+  onToggleFavorite,
 }: {
   listing: DirListing | null;
   onNavigate: (path: string) => void;
@@ -38,9 +44,14 @@ export default function TopBar({
   selectMode: boolean;
   selectedCount: number;
   sharing: boolean;
+  saving: boolean;
+  canFavorite: boolean;
+  favoriteActive: boolean;
   onStartSelect: () => void;
   onCancelSelect: () => void;
   onShareSelected: () => void;
+  onSaveSelected: () => void;
+  onToggleFavorite: () => void;
 }) {
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -59,9 +70,18 @@ export default function TopBar({
         <div className="topbar-actions">
           <button
             className="icon-btn"
+            onClick={onSaveSelected}
+            disabled={selectedCount === 0 || saving || sharing}
+            style={{ opacity: selectedCount === 0 || saving || sharing ? 0.4 : 1 }}
+            aria-label="선택 항목 저장"
+          >
+            {saving ? <div className="spinner-xs" /> : <DownloadIcon />}
+          </button>
+          <button
+            className="icon-btn"
             onClick={onShareSelected}
-            disabled={selectedCount === 0 || sharing}
-            style={{ opacity: selectedCount === 0 || sharing ? 0.4 : 1 }}
+            disabled={selectedCount === 0 || saving || sharing}
+            style={{ opacity: selectedCount === 0 || saving || sharing ? 0.4 : 1 }}
             aria-label="선택 항목 공유"
           >
             {sharing ? <div className="spinner-xs" /> : <ShareIcon />}
@@ -117,6 +137,16 @@ export default function TopBar({
         ))}
       </nav>
       <div className="topbar-actions">
+        {canFavorite && (
+          <button
+            className={'icon-btn' + (favoriteActive ? ' active' : '')}
+            onClick={onToggleFavorite}
+            aria-label={favoriteActive ? '즐겨찾기 제거' : '즐겨찾기 추가'}
+            title={favoriteActive ? '즐겨찾기 제거' : '즐겨찾기 추가'}
+          >
+            <StarIcon />
+          </button>
+        )}
         {hasImages && (
           <>
             <button

@@ -122,6 +122,12 @@ export const ShareIcon = ({ size }: P) => (
   </svg>
 );
 
+export const StarIcon = ({ size }: P) => (
+  <svg {...base(size)}>
+    <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" />
+  </svg>
+);
+
 export const SelectIcon = ({ size }: P) => (
   <svg {...base(size)}>
     <path d="M9 11l3 3L22 4" />

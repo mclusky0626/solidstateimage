@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fetchDir, type DirListing, type ImageEntry } from '../api';
-import { isShareCancelled, shareErrorMessage, shareImages } from '../nativeShare';
+import { isShareCancelled, saveImages, shareErrorMessage, shareImages } from '../nativeShare';
+import {
+  favoriteForPath,
+  loadFavorites,
+  saveFavorites,
+  type FavoriteFolder,
+} from '../favorites';
 import TopBar, { DENSITIES } from './TopBar';
 import PhotoGrid from './PhotoGrid';
-import { FolderIcon, ImageIcon, SearchIcon } from './icons';
+import { FolderIcon, ImageIcon, SearchIcon, StarIcon } from './icons';
 
 const DENSITY_KEY = 'ssi.density';
 
@@ -27,6 +33,8 @@ export default function Browser({
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sharing, setSharing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [favorites, setFavorites] = useState<FavoriteFolder[]>(loadFavorites);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -100,15 +108,20 @@ export default function Browser({
     setSelected(new Set([p]));
   }, []);
 
+  const selectedImages = useCallback(
+    () => images.filter((img) => selected.has(img.path)),
+    [images, selected],
+  );
+
   async function shareSelected() {
-    if (selected.size === 0 || sharing) return;
-    const selectedImages = images.filter((img) => selected.has(img.path));
-    if (selectedImages.length === 0) return;
+    if (selected.size === 0 || sharing || saving) return;
+    const imagesToShare = selectedImages();
+    if (imagesToShare.length === 0) return;
     setSharing(true);
     try {
-      await shareImages(selectedImages, {
-        title: `${selectedImages.length}개 사진`,
-        dialogTitle: '선택한 사진 공유 또는 저장',
+      await shareImages(imagesToShare, {
+        title: `${imagesToShare.length}개 사진`,
+        dialogTitle: '선택한 사진 공유',
       });
       setSelectMode(false);
       setSelected(new Set());
@@ -122,9 +135,50 @@ export default function Browser({
     }
   }
 
+  async function saveSelected() {
+    if (selected.size === 0 || saving || sharing) return;
+    const imagesToSave = selectedImages();
+    if (imagesToSave.length === 0) return;
+    setSaving(true);
+    try {
+      await saveImages(imagesToSave);
+      setSelectMode(false);
+      setSelected(new Set());
+      window.alert(`${imagesToSave.length}개 사진을 저장했습니다.`);
+    } catch (e) {
+      console.error(e);
+      window.alert(`사진을 저장하지 못했습니다.\n${shareErrorMessage(e)}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function updateFavorites(next: FavoriteFolder[]) {
+    setFavorites(next);
+    saveFavorites(next);
+  }
+
+  function toggleFavorite() {
+    if (!listing?.path) return;
+    const exists = favorites.some((f) => f.path === listing.path);
+    if (exists) {
+      updateFavorites(favorites.filter((f) => f.path !== listing.path));
+    } else {
+      updateFavorites([...favorites, favoriteForPath(listing.path, listing.name)]);
+    }
+  }
+
+  function removeFavorite(p: string) {
+    updateFavorites(favorites.filter((f) => f.path !== p));
+  }
+
   const hasContent =
     listing && (listing.dirs.length > 0 || listing.images.length > 0);
   const showFolders = listing && listing.dirs.length > 0 && !query.trim();
+  const showFavorites = favorites.length > 0 && !query.trim();
+  const favoriteActive = Boolean(
+    listing?.path && favorites.some((f) => f.path === listing.path),
+  );
 
   return (
     <div className="browser">
@@ -145,12 +199,17 @@ export default function Browser({
         selectMode={selectMode}
         selectedCount={selected.size}
         sharing={sharing}
+        saving={saving}
+        canFavorite={Boolean(listing?.path)}
+        favoriteActive={favoriteActive}
         onStartSelect={() => setSelectMode(true)}
         onCancelSelect={() => {
           setSelectMode(false);
           setSelected(new Set());
         }}
         onShareSelected={shareSelected}
+        onSaveSelected={saveSelected}
+        onToggleFavorite={toggleFavorite}
       />
 
       <div className="scroll" ref={scrollRef}>
@@ -167,6 +226,33 @@ export default function Browser({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
+            {showFavorites && (
+              <>
+                <div className="section-label">즐겨찾기</div>
+                <div className="favorites">
+                  {favorites.map((f) => (
+                    <div className="favorite" key={f.path}>
+                      <button
+                        className="favorite-main"
+                        onClick={() => setPath(f.path)}
+                      >
+                        <StarIcon size={18} />
+                        <span className="favorite-name">{f.name}</span>
+                        <span className="favorite-path">{f.path}</span>
+                      </button>
+                      <button
+                        className="favorite-remove"
+                        onClick={() => removeFavorite(f.path)}
+                        aria-label={`${f.name} 즐겨찾기 제거`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
             {showFolders && (
               <>
                 <div className="section-label">폴더</div>

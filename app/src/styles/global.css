@@ -122,6 +122,10 @@ button {
 .icon-btn:hover {
   background: var(--glass-hi);
 }
+.icon-btn.active {
+  color: var(--accent);
+  background: rgba(122, 162, 255, 0.12);
+}
 .icon-btn:active {
   transform: scale(0.9);
 }
@@ -241,6 +245,74 @@ button {
   text-transform: uppercase;
   color: var(--text-faint);
   margin: 6px 4px 12px;
+}
+
+/* ---- Favorite folders ---------------------------------------------------- */
+.favorites {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 26px;
+}
+.favorite {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  overflow: hidden;
+  transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+}
+.favorite:active {
+  transform: scale(0.98);
+}
+.favorite-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-areas:
+    "icon name"
+    "icon path";
+  align-items: center;
+  column-gap: 10px;
+  padding: 12px 12px 12px 14px;
+  text-align: left;
+}
+.favorite-main svg {
+  grid-area: icon;
+  color: var(--accent);
+}
+.favorite-name {
+  grid-area: name;
+  font-size: 15px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.favorite-path {
+  grid-area: path;
+  margin-top: 2px;
+  color: var(--text-faint);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.favorite-remove {
+  width: 42px;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  border-left: 1px solid var(--glass-border);
+  font-size: 22px;
+  line-height: 1;
+}
+.favorite-remove:active {
+  background: var(--glass-hi);
 }
 
 /* ---- Folder cards -------------------------------------------------------- */
