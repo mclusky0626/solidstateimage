@@ -13,6 +13,41 @@ import PhotoGrid from './PhotoGrid';
 import { FolderIcon, ImageIcon, SearchIcon, StarIcon } from './icons';
 
 const DENSITY_KEY = 'ssi.density';
+const SORT_KEY = 'ssi.sortMode';
+
+type SortMode = 'newest' | 'oldest' | 'name' | 'size';
+
+const SORT_LABELS: Record<SortMode, string> = {
+  newest: '최신순',
+  oldest: '오래된순',
+  name: '이름순',
+  size: '용량순',
+};
+
+function readSortMode(): SortMode {
+  const value = localStorage.getItem(SORT_KEY);
+  return value === 'oldest' || value === 'name' || value === 'size'
+    ? value
+    : 'newest';
+}
+
+function compareName(a: ImageEntry, b: ImageEntry): number {
+  return a.name.localeCompare(b.name, 'ko-KR', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
+function sortImages(images: ImageEntry[], mode: SortMode): ImageEntry[] {
+  const sorted = [...images];
+  sorted.sort((a, b) => {
+    if (mode === 'oldest') return a.mtime - b.mtime || compareName(a, b);
+    if (mode === 'name') return compareName(a, b) || b.mtime - a.mtime;
+    if (mode === 'size') return b.size - a.size || compareName(a, b);
+    return b.mtime - a.mtime || compareName(a, b);
+  });
+  return sorted;
+}
 
 export default function Browser({
   onOpenViewer,
@@ -34,6 +69,7 @@ export default function Browser({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sharing, setSharing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
   const [favorites, setFavorites] = useState<FavoriteFolder[]>(loadFavorites);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -89,11 +125,15 @@ export default function Browser({
   }, []);
 
   const images = listing?.images ?? [];
+  const sortedImages = useMemo(
+    () => sortImages(images, sortMode),
+    [images, sortMode],
+  );
   const filteredImages = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return images;
-    return images.filter((im) => im.name.toLowerCase().includes(q));
-  }, [images, query]);
+    if (!q) return sortedImages;
+    return sortedImages.filter((im) => im.name.toLowerCase().includes(q));
+  }, [sortedImages, query]);
 
   const toggleSelect = useCallback((p: string) => {
     setSelected((prev) => {
@@ -109,9 +149,14 @@ export default function Browser({
   }, []);
 
   const selectedImages = useCallback(
-    () => images.filter((img) => selected.has(img.path)),
-    [images, selected],
+    () => sortedImages.filter((img) => selected.has(img.path)),
+    [sortedImages, selected],
   );
+
+  function changeSortMode(mode: SortMode) {
+    setSortMode(mode);
+    localStorage.setItem(SORT_KEY, mode);
+  }
 
   async function shareSelected() {
     if (selected.size === 0 || sharing || saving) return;
@@ -273,13 +318,27 @@ export default function Browser({
 
             {images.length > 0 && (
               <>
-                {(listing.dirs.length > 0 || query.trim()) && (
+                <div className="section-head">
                   <div className="section-label">
                     {query.trim()
                       ? `검색 결과 ${filteredImages.length}`
                       : `사진 ${images.length}`}
                   </div>
-                )}
+                  <label className="sort-control">
+                    <span>정렬</span>
+                    <select
+                      value={sortMode}
+                      onChange={(e) => changeSortMode(e.target.value as SortMode)}
+                      aria-label="사진 정렬"
+                    >
+                      {Object.entries(SORT_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
                 {filteredImages.length > 0 ? (
                   <PhotoGrid
                     images={filteredImages}

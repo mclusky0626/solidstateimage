@@ -246,6 +246,49 @@ button {
   color: var(--text-faint);
   margin: 6px 4px 12px;
 }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 4px 12px;
+}
+.section-head .section-label {
+  margin: 0;
+}
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.sort-control select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  color: var(--text);
+  padding: 6px 26px 6px 11px;
+  font: inherit;
+  letter-spacing: 0;
+  outline: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.sort-control select:focus {
+  border-color: var(--accent);
+}
 
 /* ---- Favorite folders ---------------------------------------------------- */
 .favorites {
